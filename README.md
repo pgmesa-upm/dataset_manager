@@ -3,7 +3,7 @@
 
 => Autor: Pablo García Mesa - pgmesa.sm@gmail.com
 
-## 0. Descripción
+### 0. Descripción
 Esta herramienta se ha creado para facilitar el actual y el futuro manejo del dataset del estudio de esclerosis múltiple,
 llevado a cabo por la UPM en colaboración con el oftalmológico del Gregorio Marañón 
 
