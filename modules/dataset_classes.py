@@ -115,7 +115,7 @@ class RawDataset():
         
         return patients
     
-    def get_data_paths(self, group:str=None, patient_num:Union[int, list[int]]=None, 
+    def get_data_paths(self, group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, 
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
         
         def _get_dtype(grp:str, p_num:int, d_type:str) -> dict:
@@ -147,6 +147,9 @@ class RawDataset():
         if group is None:
             for group in self.groups.keys():
                 data[group] = {}
+        elif type(group) is list:
+            for grp in group:
+                data[grp] = {}
         else:
             data[group] = {}
         # Recorremos los grupos
@@ -379,8 +382,8 @@ class RawDataset():
                 total_octas = 0;
                 if 'OCTA' in summary_dtypes:
                     total_octas = num_patients*4
-                    octa_perc =  round((total_octs-m_octa)*100/total_octs, 2)
-                    print(f'     -> OCTA Cubes => {total_octs-m_octa}/{total_octs} ({octa_perc}%) -> ({m_octa} missing)')
+                    octa_perc =  round((total_octas-m_octa)*100/total_octas, 2)
+                    print(f'     -> OCTA Cubes => {total_octas-m_octa}/{total_octas} ({octa_perc}%) -> ({m_octa} missing)')
                 # Retinographies
                 total_retinos = 0;
                 if 'retinography' in summary_dtypes:
@@ -505,7 +508,7 @@ class CleanDataset():
         
         return patients
 
-    def get_data_paths(self, group:str=None, patient_num:Union[int, list[int]]=None, 
+    def get_data_paths(self, group:str=Union[int, list[str]], patient_num:Union[int, list[int]]=None, 
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
         
         def _get_dtype(grp:str, p_num:int, d_type:str) -> dict:
@@ -537,6 +540,9 @@ class CleanDataset():
         if group is None:
             for group in self.groups.keys():
                 data[group] = {}
+        elif type(group) is list:
+            for grp in group:
+                data[grp] = {}
         else:
             data[group] = {}
         # Recorremos los grupos
@@ -733,8 +739,8 @@ class CleanDataset():
                 total_octas = 0;
                 if 'OCTA' in summary_dtypes:
                     total_octas = num_patients*4
-                    octa_perc =  round((total_octs-m_octa)*100/total_octs, 2)
-                    print(f'     -> OCTA Cubes => {total_octs-m_octa}/{total_octs} ({octa_perc}%) -> ({m_octa} missing)')
+                    octa_perc =  round((total_octas-m_octa)*100/total_octas, 2)
+                    print(f'     -> OCTA Cubes => {total_octas-m_octa}/{total_octas} ({octa_perc}%) -> ({m_octa} missing)')
                 # Retinographies
                 total_retinos = 0;
                 if 'retinography' in summary_dtypes:
@@ -752,26 +758,3 @@ class CleanDataset():
                 total_missing = m_oct+m_octa+m_ret+m_xml; percentage = round((total-total_missing)*100/total, 2)
                 print(f' -> Global data = {total-total_missing}/{total} ({percentage}%) -> ({total_missing} missing)')
             print('----------------------------------------------------')
-    
-    
-    
-    # def get_path():
-    #     ...
-        
-    # def get_oct():
-    #     ...
-    
-    # def get_octa():
-    #     ...
-        
-    # def get_retinography():
-    #     ...
-    
-    # def get_xml():
-    #     ...
-    
-    # def get_excel():
-    #     ...
-        
-    # def save_data():
-    #     ...
