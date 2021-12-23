@@ -16,7 +16,6 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from tifffile.tifffile import main
 import tiffile as tiff
 
 import modules.oct_processing_lib as raw
