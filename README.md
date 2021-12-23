@@ -2,7 +2,7 @@
 # DATASET MANAGER (V-1.0) (solo compatible con Windows)
 
 ### Autor
- Pablo García Mesa - pgmesa.sm@gmail.com
+Pablo García Mesa - pgmesa.sm@gmail.com
 
 ### 0. Descripción
 Esta herramienta se ha creado para facilitar el actual y el futuro manejo del dataset del estudio de esclerosis múltiple,
