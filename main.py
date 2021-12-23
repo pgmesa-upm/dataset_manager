@@ -11,15 +11,13 @@ commands = {
 }
 
 def main():
+    print(" + DATASET MANAGER (ctrl-c to exit):")
     print_help()
     print(" -  Enter command: ")
-    valid_command = False
-    while not valid_command:
+    while True:
         command_line = str(input("> ")).split(" ")
         command = command_line[0]
-        print(command_line, command)
         if command in commands:
-            valid_command = True
             if command == 'raw':
                 # Info del raw_dataset
                 if len(command_line) > 1:
@@ -31,7 +29,6 @@ def main():
                         raw_dataset.show_info(only_summary=True)
                     else:
                         print(f"[!] '{mode}' is not a valid mode")
-                        valid_command = False
                 else:
                     raw_dataset.show_info()
             elif command == 'clean':
@@ -44,21 +41,18 @@ def main():
                         clean_dataset.show_info(only_summary=True)
                     else:
                         print(f"[!] '{mode}' is not a valid mode")
-                        valid_command = False
                 else:
                     clean_dataset.show_info()
             elif command == "check":
                 print("[!] Not implemented yet")
-                valid_command = False
                 ...
             elif command == "process":
                 # process_raw_dataset()
                 print("[!] Not implemented yet")
-                valid_command = False
                 ...
         else:
-            print(f"[!] '{command}' command doesn't exist in the program")
-    args = sys.argv; args.pop(0)
+            if command != '':
+                print(f"[!] '{command}' command doesn't exist in the program")
         
             
 def print_help():
