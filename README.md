@@ -3,7 +3,7 @@
 
 => Autor: Pablo García Mesa - pgmesa.sm@gmail.com
 
-0. Descripción
+## 0. Descripción
 Esta herramienta se ha creado para facilitar el actual y el futuro manejo del dataset del estudio de esclerosis múltiple,
 llevado a cabo por la UPM en colaboración con el oftalmológico del Gregorio Marañón 
 
@@ -14,5 +14,5 @@ EL programa cuenta con unos cuantos comandos para interactuar con los dos datase
 sobre el contenido de ambos datasets, los compara y permite identificar cundo hay datos nuevos disponibles para procesar
 y permite procesarlos de forma automática
 
-1. Limitaciones
+### 1. Limitaciones
 Los scripts en sí que usa el programa tienen gran cantidad de funcionalidades y posibilidades para buscar información, cambiar la forma del procesado, etc, pero el programa de consola que controla el programa es muy limitado (solo se han incluido unas funciones básicas predefinidas, sin mucha oportunidad de introducir argumentos extra o flags para personalizar la ejecución). A pesar de esto, tiene gran utilidad para el estudio y además esta limitación es facil de mejorar
