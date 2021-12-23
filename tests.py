@@ -4,11 +4,14 @@ from PIL import Image
 import os
 from process_raw_dataset import process_image2D3D, study_hard_disk_path, process_cube
 from modules.visualization_lib import show_image, animate_volume
-from modules.dataset_classes import RawDataset, DatasetAccessError
+from modules.dataset_classes import RawDataset, DatasetAccessError, CleanDataset
 from modules.oct_processing_lib import Cube
 
-raw_dataset_path = "D:/study_datasets/raw_dataset"
-
+study_hard_disk_path = "D:/"
+study_dir_name = "study_datasets"
+clean_dataset_path = study_hard_disk_path+f"{study_dir_name}/clean_dataset"
+raw_dataset_path = study_hard_disk_path+f"{study_dir_name}/raw_dataset"
+clean_dataset = CleanDataset(clean_dataset_path)
 raw_dataset = RawDataset(raw_dataset_path)
 
 def compare():
@@ -109,7 +112,8 @@ if __name__ == "__main__":
     # compare()
     # data = raw_dataset.get_data_paths(group='sclerosis', patient_num=15)
     # print(json.dumps(data, indent=4))
-    raw_dataset.show_info(only_missing_info=True)
+    raw_dataset.show_info(only_summary=True)
+    clean_dataset.show_info(only_summary=True)
     
 
    

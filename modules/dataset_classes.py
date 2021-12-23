@@ -21,7 +21,7 @@ class RawDataset():
                         - PCZMI... .img (exported with Zeiss research licence)
                         ...
                     - retinography
-                        - O(S/D)_study-date_retinography.jpg
+                        - O(S/D)_adqu-date_retinography.jpg
                     - XML
                         - CZMI... .xml
                 - patient-2
@@ -105,15 +105,15 @@ class RawDataset():
             
         return dict(zip(headers, info))
     
-    def get_num_patients(self, group:str) -> int:
+    def get_patients(self, group:str) -> list:
         group_path:Path = self.get_dir_path(group=group)
         file_names = os.listdir(group_path)
-        num_patients = len(file_names)
+        patients = []
         for name in file_names:
-            if "patient-" not in name: 
-                num_patients -= 1
+            if "patient-" in name: 
+                patients.append(name)
         
-        return num_patients
+        return patients
     
     def get_data_paths(self, group:str=None, patient_num:Union[int, list[int]]=None, 
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
@@ -152,8 +152,12 @@ class RawDataset():
         # Recorremos los grupos
         for grp in data:
             if patient_num is None:
-                for i in range(self.get_num_patients(grp)):
-                    data[grp][f'patient-{i+1}'] = _get_data_oftype(grp, i+1, d_type=data_type)
+                for patient in self.get_patients(grp):
+                    num = patient.split("-")[1]
+                    try:
+                        data[grp][patient] = _get_data_oftype(grp, num, d_type=data_type)
+                    except DatasetAccessError:
+                        pass
             elif type(patient_num) is list:
                 for num in patient_num:
                    data[grp][f'patient-{num}'] = _get_data_oftype(grp, num, d_type=data_type) 
@@ -216,7 +220,7 @@ class RawDataset():
                 
         return img_data
         
-    def _get_xml_paths(self, group:str, patient_num:int) -> list:
+    def _get_xml_paths(self, group:str, patient_num:int) -> dict:
         data_type = 'XML'
         path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)
         data_path = {}
@@ -280,7 +284,7 @@ class RawDataset():
             print('----------------------------------------------------')
             msg = f" + {group.upper()} GROUP"
             if patient_num is None:
-                msg += f" (size={self.get_num_patients(group)})"
+                msg += f" (size={len(self.get_patients(group))})"
             else:
                 msg += F", PATIENT {patient_num}"
             print(msg)
@@ -404,11 +408,11 @@ class CleanDataset():
                 (patients)
                 - patient-1
                     - OCT
-                        - NHC(encrypted)_adqu-type_adqu-date.tiff
+                        - patient-1_adqu-type_adqu-date_O(S/D).tiff
                     - OCTA
                         ...
                     - retinography
-                        - O(S/D)_study-date_retinography.jpg
+                        - patient-1_retinography_adqu-date_O(S/D).jpg
                     - patient-1_analysis.json
                 - patient-2
                     ...
@@ -433,6 +437,11 @@ class CleanDataset():
         'retinography': {'parent_dir': 'retinography'},
         'XML': {'parent_dir': ''}
     }
+    
+    file_suffixes = {
+        'XML': "analysis.json"
+    }
+    
     zones = {
         'macula': {
             'adquisitions_name': {
@@ -485,12 +494,127 @@ class CleanDataset():
                 dir_name = self.data_types[dtype]['parent_dir']
                 if not os.path.exists(patient_path/dir_name):
                     os.mkdir(patient_path/dir_name)
-    
-    def get_data_paths():
-        ...
         
-    def get_num_patients():
-        ...
+    def get_patients(self, group:str) -> list:
+        group_path:Path = self.get_dir_path(group=group)
+        file_names = os.listdir(group_path)
+        patients = []
+        for name in file_names:
+            if "patient-" in name: 
+                patients.append(name)
+        
+        return patients
+
+    def get_data_paths(self, group:str=None, patient_num:Union[int, list[int]]=None, 
+                       data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
+        
+        def _get_dtype(grp:str, p_num:int, d_type:str) -> dict:
+            data_type_info = {}
+            if d_type == 'OCT' or d_type == 'OCTA':
+                data_type_info = self._get_img_paths(grp, p_num, d_type, zone=zone, eye=eye)
+            elif d_type == 'retinography':
+                data_type_info = self._get_retinography_paths(grp, p_num, eye=eye)
+            elif d_type == 'XML':
+                data_type_info = self._get_analysis_path(grp, p_num)
+        
+            return data_type_info
+        
+        def _get_data_oftype(grp:str, p_num:int, d_type:Union[str, list[str]]=None) -> dict:
+            data_types = {}
+            if d_type is None:
+                for d_type in self.data_types.keys():
+                    data_types[d_type] = _get_dtype(grp, p_num, d_type)
+            elif type(d_type) is list:
+                for dtp in d_type:
+                    data_types[dtp] = _get_dtype(grp, p_num, dtp)
+            elif type(d_type) is str:
+                data_types[d_type] = _get_dtype(grp, p_num, d_type)
+        
+            return data_types
+        
+        # Vemos que grupos hay que recorrer        
+        data = {}     
+        if group is None:
+            for group in self.groups.keys():
+                data[group] = {}
+        else:
+            data[group] = {}
+        # Recorremos los grupos
+        for grp in data:
+            if patient_num is None:
+                for patient in self.get_patients(grp):
+                    num = patient.split("-")[1]
+                    data[grp][patient] = _get_data_oftype(grp, num, d_type=data_type)
+            elif type(patient_num) is list:
+                for num in patient_num:
+                    data[grp][f'patient-{num}'] = _get_data_oftype(grp, num, d_type=data_type) 
+            else:
+                data[grp][f'patient-{patient_num}'] = _get_data_oftype(grp, patient_num, d_type=data_type)
+        # Vemos si se nos ha especificado un unico path en concreto para devolver solo ese en vez del dict entero
+        if group is not None and type(patient_num) is int and type(data_type) is str:
+            try:   
+                if data_type == 'OCT' or data_type == 'OCTA':
+                    if data_type is not None and zone is not None and eye is not None:  
+                        data = data[group][f'patient-{patient_num}'][data_type][zone][eye]
+                elif data_type == 'retinography':
+                    if data_type is not None and zone is not None and eye is not None:  
+                        data = data[group][f'patient-{patient_num}'][data_type][eye]
+                elif data_type == 'XML':
+                    data = data[group][f'patient-{patient_num}'][data_type]
+                    if not bool(data): raise KeyError
+            except KeyError:
+                raise DatasetAccessError("The path/file specified doesn't exist")
+        
+        return data
+    
+    def _get_img_paths(self, group:str, patient_num:int, modality:str, zone:str=None, eye:str=None) -> dict:
+        path = self.get_dir_path(group=group, patient_num=patient_num, data_type=modality)
+        img_data = {}
+        if os.path.isdir(path):
+            for file_name in os.listdir(path):
+                for z, zone_val in self.zones.items():
+                    if zone_val['adquisitions_name'][modality] in file_name:
+                        break
+                else: continue
+                if zone is not None and z != zone: continue
+                if img_data.get(z, None) is None:
+                    img_data[z] = {}
+                for e, eye_val in self.eyes.items():
+                    if eye_val in file_name: break
+                if eye is not None and e != eye: continue
+                img_data[z][e] = {}
+                full_path = str(path/file_name)
+                img_data[z][e] = full_path
+                
+        return img_data
+    
+    def _get_retinography_paths(self, group:str, patient_num:int, eye:str=None) -> dict:
+        data_type = 'retinography'
+        path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)
+        img_data = {}
+        if os.path.isdir(path):
+            for file_name in os.listdir(path):
+                for e, eye_val in self.eyes.items():
+                    if eye_val in file_name: break
+                if eye is not None and e != eye: continue
+                img_data[e] = {}
+                full_path = str(path/file_name)
+                img_data[e] = full_path
+                
+        return img_data
+        
+    def _get_analysis_path(self, group:str, patient_num:int) -> dict:
+        data_type = 'XML'; name = f'patient-{patient_num}_'+self.file_suffixes[data_type]
+        analysis_path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)/name
+        analysis = {}
+        if os.path.exists(analysis_path):
+            analysis[analysis_path] = self._get_analysis_info(analysis_path)
+            return analysis
+        return {}
+    
+    def _get_analysis_info(self, file_path:Path) -> list:
+        analysis_dict:dict = json.loads(file_path.read_bytes())
+        return list(analysis_dict.keys())
     
     def show_info(self, group:str=None, patient_num:Union[int, list[int]]=None,
                     only_missing_info:bool=False, data_types:list[str]=None, only_summary:bool=False):
@@ -514,7 +638,7 @@ class CleanDataset():
             print('----------------------------------------------------')
             msg = f" + {group.upper()} GROUP"
             if patient_num is None:
-                msg += f" (size={self.get_num_patients(group)})"
+                msg += f" (size={len(self.get_patients(group))})"
             else:
                 msg += F", PATIENT {patient_num}"
             print(msg)

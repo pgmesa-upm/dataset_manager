@@ -26,8 +26,9 @@ from modules.dataset_classes import RawDataset, CleanDataset, DatasetAccessError
 
 
 study_hard_disk_path = "D:/"
-clean_dataset_path = study_hard_disk_path+"study_datasets/clean_dataset"
-raw_dataset_path = study_hard_disk_path+"study_datasets/raw_dataset"
+study_dir_name = "study_datasets"
+clean_dataset_path = study_hard_disk_path+f"{study_dir_name}/clean_dataset"
+raw_dataset_path = study_hard_disk_path+f"{study_dir_name}/raw_dataset"
 clean_dataset = CleanDataset(clean_dataset_path)
 raw_dataset = RawDataset(raw_dataset_path)
 
@@ -42,11 +43,11 @@ logger = logging.getLogger(__name__)
 OVERRIDE = False
 
 def main():
-    parse_raw_dataset(
+    process_raw_dataset(
         group='control', patient_nums=[1,2,3,4,5,6,7,8,9,10,11,21]
     )
 
-def parse_raw_dataset(group:str=None, patient_nums:Union[int, list[int]]=None, 
+def process_raw_dataset(group:str=None, patient_nums:Union[int, list[int]]=None, 
                         data_types:Union[str, list[str]]=None, zone:str=None, eye:str=None):
     if not os.path.exists(study_hard_disk_path):
         logger.error(" The study hard disk is not connected to the computer")
