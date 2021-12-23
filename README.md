@@ -7,15 +7,14 @@ Pablo García Mesa
 - https://github.com/pgmesa-upm/excel_manager
 
 ### 0. Descripción
-Esta herramienta se ha creado para facilitar el actual y el futuro manejo del dataset del estudio de esclerosis múltiple,
+Esta herramienta se ha creado para facilitar el manejo actual y futuro del dataset del estudio de esclerosis múltiple,
 llevado a cabo por la UPM en colaboración con el oftalmológico del Gregorio Marañón 
 
-Viene con un fichero .bat para inicializar el programa. Es necesario que en la carpeta del disco donde se encuentre haya, en 
-el mismo directorio padre, un interprete de python instalado (revisar codigo de .bat para más información). Si no está presente se podrá utilizar un interprete del propio ordenador ejecutando el archivo main.py (si todas las dependencias están instaladas -> mirar requirements.txt)
+Viene con un fichero .bat para inicializar el programa. Es necesario que en la carpeta del disco duro donde se encuentre, haya, en el mismo directorio padre, un interprete de python instalado con el nombre (.python) (>3.9) (revisar codigo de .bat para más información). Si no está presente se podrá utilizar un interprete del propio ordenador ejecutando el archivo main.py (si todas las dependencias están instaladas -> mirar requirements.txt)
 
 EL programa cuenta con unos cuantos comandos para interactuar con los dos datasets (raw y clean): muestra información 
 sobre el contenido de ambos datasets, los compara y permite identificar cundo hay datos nuevos disponibles para procesar
 y permite procesarlos de forma automática
 
 ### 1. Limitaciones
-Los scripts en sí que usa el programa tienen gran cantidad de funcionalidades y posibilidades para buscar información, cambiar la forma del procesado, etc, pero el programa de consola que controla el programa es muy limitado (solo se han incluido unas funciones básicas predefinidas, sin mucha oportunidad de introducir argumentos extra o flags para personalizar la ejecución). A pesar de esto, tiene gran utilidad para el estudio y además esta limitación es facil de mejorar
+Los scripts en sí que usa el programa tienen gran cantidad de funcionalidades y posibilidades para buscar información, cambiar la forma del procesado, etc, pero el programa de consola que controla el estos es limitado por ahora y no permite acceder a muchas de las opciones que ofrecen los script. La busqueda de información si se ha implementado casi al completo, pero la personalización del procesado todavía no. En un futuro convendría implementarlo con un fichero de configuración, pero de momento para el estudio no lo veo necesario, ya que una vez definida la forma de procesar, lo normal es dejarlo todo igual a no ser que se quiera reprocesar todo el dataset con otra configuración. Para hacer esto último requeriría cambiar los parámetro direcamente desde los scripts.
