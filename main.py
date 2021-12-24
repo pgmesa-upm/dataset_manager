@@ -110,9 +110,10 @@ def print_help():
     for command, info in commands.items():
         print(f"     => '{command}': {info}")
         
-    print("[?] Global Commands:")
+    print("[?] Global Flags:")
     for gflag, info in global_flags.items():
         print(f"     => '{gflag}': {info}")
+    print("[%] *INFO: commands 'raw', 'clean', 'check' and 'process' admits specific queries (-hq to know more)")
     
 if __name__ == "__main__":
     try:
