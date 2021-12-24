@@ -1,6 +1,7 @@
 
 import os
 import json
+import copy
 import pandas_read_xml as pdx
 from typing import Union
 from pathlib import Path
@@ -105,27 +106,30 @@ class RawDataset():
             
         return dict(zip(headers, info))
     
-    def get_patients(self, group:str) -> list:
+    def get_patients(self, group:str, as_int:bool=False) -> list:
         group_path:Path = self.get_dir_path(group=group)
         file_names = os.listdir(group_path)
         patients = []
         for name in file_names:
-            if "patient-" in name: 
-                patients.append(name)
+            if "patient-" in name:
+                if as_int:
+                    patients.append(int(name.split("-")[1]))
+                else:
+                    patients.append(name)
         
         return patients
     
     def get_data_paths(self, group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, 
-                       data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
+                       data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, _withoutpaths:bool=False) -> Union[dict, Path]:
         
         def _get_dtype(grp:str, p_num:int, d_type:str) -> dict:
             data_type_info = {}
             if d_type == 'OCT' or d_type == 'OCTA':
-                data_type_info = self._get_img_paths(grp, p_num, d_type, zone=zone, eye=eye)
+                data_type_info = self._get_img_paths(grp, p_num, d_type, zone=zone, eye=eye, _withoutpaths=_withoutpaths)
             elif d_type == 'retinography':
-                data_type_info = self._get_retinography_paths(grp, p_num, eye=eye)
+                data_type_info = self._get_retinography_paths(grp, p_num, eye=eye, _withoutpaths=_withoutpaths)
             elif d_type == 'XML':
-                data_type_info = self._get_xml_paths(grp, p_num)
+                data_type_info = self._get_xml_paths(grp, p_num, _withoutpaths=_withoutpaths)
         
             return data_type_info
         
@@ -139,6 +143,12 @@ class RawDataset():
                     data_types[dtp] = _get_dtype(grp, p_num, dtp)
             elif type(d_type) is str:
                 data_types[d_type] = _get_dtype(grp, p_num, d_type)
+            
+            # Filtramos los que no tengan info (estan vacíos)
+            if _withoutpaths:
+                dict_copy = copy.deepcopy(data_types)
+                for d, info in dict_copy.items():
+                    if not bool(info): data_types.pop(d) 
         
             return data_types
         
@@ -183,9 +193,9 @@ class RawDataset():
         
         return data
     
-    def _get_img_paths(self, group:str, patient_num:int, modality:str, zone:str=None, eye:str=None) -> dict:
+    def _get_img_paths(self, group:str, patient_num:int, modality:str, zone:str=None, eye:str=None, _withoutpaths=False) -> dict:
         path = self.get_dir_path(group=group, patient_num=patient_num, data_type=modality)
-        img_data = {}
+        img_data = {}; data_without_paths = {}
         if os.path.isdir(path):
             for file_name in os.listdir(path):
                 if not file_name.endswith(self.file_suffixes[modality]):
@@ -196,20 +206,25 @@ class RawDataset():
                 else: continue
                 if zone is not None and z != zone: continue
                 if img_data.get(z, None) is None:
-                    img_data[z] = {}
+                    img_data[z] = {}; data_without_paths[z] = []
                 for e, eye_val in self.eyes.items():
                     if eye_val in file_name: break
                 if eye is not None and e != eye: continue
-                img_data[z][e] = {}
                 full_path = str(path/file_name)
                 img_data[z][e] = full_path
-                
+                data_without_paths[z].append(e)
+        
+        dict_copy = copy.deepcopy(data_without_paths)
+        for z, info in dict_copy.items():
+            if not bool(info): data_without_paths.pop(z)
+        
+        if _withoutpaths: return data_without_paths        
         return img_data
     
-    def _get_retinography_paths(self, group:str, patient_num:int, eye:str=None) -> dict:
+    def _get_retinography_paths(self, group:str, patient_num:int, eye:str=None, _withoutpaths=False) -> Union[dict, list]:
         data_type = 'retinography'
         path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)
-        img_data = {}
+        img_data = {}; eyes = []
         if os.path.isdir(path):
             for file_name in os.listdir(path):
                 if not file_name.endswith(self.file_suffixes[data_type]):
@@ -217,23 +232,26 @@ class RawDataset():
                 for e, eye_val in self.eyes.items():
                     if eye_val in file_name: break
                 if eye is not None and e != eye: continue
-                img_data[e] = {}
                 full_path = str(path/file_name)
                 img_data[e] = full_path
-                
+                eyes.append(e)
+        if _withoutpaths: return eyes    
         return img_data
         
-    def _get_xml_paths(self, group:str, patient_num:int) -> dict:
+    def _get_xml_paths(self, group:str, patient_num:int, _withoutpaths=False) -> Union[dict, list]:
         data_type = 'XML'
         path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)
-        data_path = {}
+        data_path = {}; total_scans = []
         if os.path.isdir(path):
             for file_name in os.listdir(path):
                 if not file_name.startswith(self.file_prefixes[data_type]):
                     continue
                 full_path = str(path/file_name)
-                data_path[full_path] = self._get_xml_info(full_path)
-              
+                scans = self._get_xml_info(full_path)
+                total_scans += scans
+                data_path[full_path] = scans
+        
+        if _withoutpaths: return total_scans
         return data_path
     
     def _get_xml_info(self, file_path:str) -> list:
@@ -508,7 +526,7 @@ class CleanDataset():
         
         return patients
 
-    def get_data_paths(self, group:str=Union[int, list[str]], patient_num:Union[int, list[int]]=None, 
+    def get_data_paths(self, group:Union[int, list[str]]=None, patient_num:Union[int, list[int]]=None, 
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None) -> Union[dict, Path]:
         
         def _get_dtype(grp:str, p_num:int, d_type:str) -> dict:
@@ -614,7 +632,7 @@ class CleanDataset():
         analysis_path = self.get_dir_path(group=group, patient_num=patient_num, data_type=data_type)/name
         analysis = {}
         if os.path.exists(analysis_path):
-            analysis[analysis_path] = self._get_analysis_info(analysis_path)
+            analysis[str(analysis_path)] = self._get_analysis_info(analysis_path)
             return analysis
         return {}
     

@@ -1,10 +1,11 @@
 
-from process_raw_dataset import process_raw_dataset, raw_dataset, clean_dataset
+from dataset_manager import process_raw_dataset, raw_dataset, clean_dataset, compare_datasets
 
 commands = {
-    'raw': "Shows raw dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s). Admits specific queries",
-    'clean': "Shows clean dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s). Admits specific queries",
-    'check': "Shows the difference between the 2 datasets. Is usefull to see if there is available data to process",
+    'raw': "Shows raw dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s)",
+    'clean': "Shows clean dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s)",
+    'check': ("Shows the difference between the 2 datasets. Is usefull to see if there is available data to process "+ 
+                "(add -a to show all info)"),
     'process': "Processes the entire raw dataset (add -o to override existing clean files)"
 }
 
@@ -20,6 +21,9 @@ def main():
     while True:
         try:
             command_line = str(input("> ")).split(" ")
+            # Filtramos los argumentos no validos
+            command_line = [arg for arg in command_line if arg != ""]
+            if len(command_line) == 0: continue
             command = command_line.pop(0)
             if command in global_flags:
                 flag = command
@@ -34,35 +38,36 @@ def main():
                     if '-m' in command_line: m = True; command_line.remove('-m')
                     elif '-s' in command_line: s = True; command_line.remove('-s')
                     queries = process_queries(command_line)
-                    print(queries)
                     dataset.show_info(**queries, only_missing_info=m, only_summary=s)
                 elif command == "check":
-                    print("[!] Not implemented yet")
-                    ...
+                    a = False
+                    if '-a' in command_line: a = True; command_line.remove('-a')
+                    queries = process_queries(command_line)
+                    compare_datasets(**queries, all_info=a)
                 elif command == "process":
-                    # process_raw_dataset()
-                    print("[!] Not implemented yet")
-                    ...
+                    o = False
+                    if '-o' in command_line: o = True; command_line.remove('-o')
+                    queries = process_queries(command_line)
+                    process_raw_dataset(**queries, OVERRIDE=o)
             else:
-                if command != '':
-                    print(f"[!] '{command}' command doesn't exist in the program")
+                print(f"[!] '{command}' command doesn't exist in the program")
         except Exception as err:
             print(f"[!] '{err}'")
 
 def process_queries(cmd_line:list) -> dict:
     queries = dict(
-        group=[], patient_num=[], data_types=[]
+        group=[], patient_num=[], data_type=[]
     )
     qflags ={
-        '-g=':"group", '-p=':"patient_num", '-d=':"data_types"
+        '-g=':"group", '-p=':"patient_num", '-d=':"data_type"
     }
     for arg in cmd_line:
         flag = arg[:3]; query = arg[3:]
         if flag in qflags.keys():
             splitted = query.split(",")
             key = qflags[flag]
-            print(splitted)
             for sp in splitted:
+                if sp == '': continue
                 val = sp
                 if '-p=' == flag:
                     if "-" in sp: 
@@ -96,6 +101,7 @@ def show_how_to_query():
     3. '-d=' - Choose one or more data types. Ex: -g=OCT,retinography,XML
     
     *INFO: For acronyms use upper case, otherwise the query will fail.
+        - If nothing is specified, all options are processed
     """
     print(info)
         

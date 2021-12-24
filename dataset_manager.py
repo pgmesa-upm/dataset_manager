@@ -39,43 +39,37 @@ width_scale_factor = transv_axial_ratio/2
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-OVERRIDE = False
-
-def main():
-    process_raw_dataset(
-        group='control', patient_nums=[1,2,3,4,5,6,7,8,9,10,11,21]
-    )
-
-def process_raw_dataset(group:str=None, patient_nums:Union[int, list[int]]=None, 
-                        data_types:Union[str, list[str]]=None, zone:str=None, eye:str=None):
+def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
+                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, OVERRIDE=False):
     if not os.path.exists(study_hard_disk_path):
-        logger.error(" The study hard disk is not connected to the computer")
-        exit(1)
+        logger.error(f" The study hard disk is not connected to the computer '{study_hard_disk_path}'")
+        return
     logger.info(" ----------- Procesing raw_dataset into clean_dataset -----------")
     logger.info(f" -> Raw Dataset Path => '{raw_dataset_path}'")
     logger.info(f" -> Clean Dataset Path => '{clean_dataset_path}'")
     raw_data_paths = raw_dataset.get_data_paths(
-        group=group, patient_num=patient_nums, data_type=data_types, zone=zone, eye=eye
+        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye
     )
     for grp in raw_dataset.groups:
         if group is not None and grp != group: continue
         logger.info(f" => {grp.upper()} GROUP")
         # vemos que pacientes hay que procesar
-        if patient_nums is None: pat_iterable = range(1, raw_dataset.get_num_patients(grp)+1)
-        elif type(patient_nums) is list: pat_iterable = patient_nums
-        elif type(patient_nums) is int: pat_iterable = [patient_nums]
+        if patient_num is None: pat_iterable = raw_dataset.get_patients(grp, as_int=True)
+        elif type(patient_num) is list: pat_iterable = patient_num
+        elif type(patient_num) is int: pat_iterable = [patient_num]
         # iteramos
         for p_num in pat_iterable:
             patient = f'patient-{p_num}'
             logger.info(f"  + Processing '{patient}' data")
             clean_dataset.create_patient(grp, patient_num=p_num)
             # Vemos que data types hay que procesar
-            if type(data_types) is str: data_types = [data_types]
-            elif data_types is None: data_types = raw_dataset.data_types   
+            if type(data_type) is str: data_type = [data_type]
+            elif data_type is None: data_type = raw_dataset.data_types   
             # iteramos
-            for dtype in data_types:
+            for dtype in data_type:
                 dtype_data:dict = raw_data_paths[grp][patient][dtype]
                 clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, data_type=dtype)
+                if not os.path.exists(clean_path): os.mkdir(clean_path)
                 if bool(dtype_data):
                     if dtype == 'OCT' or dtype == 'OCTA':
                         for zone, zone_info in raw_dataset.zones.items():
@@ -156,8 +150,8 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
             resize=(int(width_scale_factor*1024), 1024) if resize else None
         ).rotate_face(axe='x').resize_slices((350,350)).project().as_nparray()
     else:
-        print(f"DATA_ERROR: '{data_type}' is not a valid data type")
-        exit(1)
+        raise Exception(f"DATA_ERROR: '{data_type}' is not a valid data type")
+        
         
     if timeit:
         tf = time.time()
@@ -186,8 +180,8 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 resize=resize
             )
         else:
-            print(f"DATA_ERROR: '{zone}' is not a valid zone")
-            exit(1)
+            raise Exception(f"DATA_ERROR: '{zone}' is not a valid zone")
+
     elif modality == 'OCTA':
         if zone == 'macula' or zone == 'optic-nerve':
             cube = raw.process_oct(
@@ -199,11 +193,91 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 resize=resize
             )
         else:
-            print(f"DATA_ERROR: '{zone}' is not a valid zone")
-            exit(1)
+            raise Exception(f"DATA_ERROR: '{zone}' is not a valid zone")
     
     return cube
 
-# ----------------------------------------------
-if "__main__" == __name__:
-    main()
+def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, 
+                       data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, all_info=False):
+    # data = raw_dataset.get_data_paths(group="RIS")
+    # print(json.dumps(data, indent=4)); return
+    # # Hallamos los datos no procesados
+
+    
+    available_info = raw_dataset.get_data_paths(
+        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye,
+    )
+    without_paths = raw_dataset.get_data_paths(
+        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye,
+        _withoutpaths=True
+    )
+    processed_info = clean_dataset.get_data_paths()
+    not_processed = {}
+    for group, agroup_info in available_info.items():
+        if not bool(agroup_info): continue
+        if group not in processed_info:
+            not_processed[group] = without_paths[group]
+        else:
+            pgroup_info = processed_info[group]
+            not_processed[group] = {}
+            for patient, apatient_info in agroup_info.items():
+                if not bool(apatient_info): continue
+                if patient not in pgroup_info:
+                    not_processed[group][patient] = without_paths[group][patient]
+                else:
+                    ppatient_info = pgroup_info[patient]
+                    not_processed[group][patient] = {}
+                    for dtype, adtype_info in apatient_info.items():
+                        if not bool(adtype_info): continue
+                        if dtype not in ppatient_info:
+                            not_processed[group][patient][dtype] = without_paths[group][patient][dtype]
+                        else:
+                            if dtype == 'OCTA' or dtype =='OCT':
+                                pzones_info = ppatient_info[dtype]
+                                not_processed[group][patient][dtype] = {}
+                                for zone, azone_info in adtype_info.items():
+                                    if not bool(azone_info): continue
+                                    if zone not in pzones_info:
+                                        not_processed[group][patient][dtype][zone] = without_paths[group][patient][dtype][zone]
+                                    else:
+                                        peyes_info = pzones_info[zone]
+                                        not_processed[group][patient][dtype][zone] = []
+                                        for eye, aeye_info in azone_info.items():
+                                            if eye not in peyes_info:
+                                                not_processed[group][patient][dtype][zone].append(eye)
+                                        if len(not_processed[group][patient][dtype][zone]) == 0:
+                                            not_processed[group][patient][dtype].pop(zone)
+                            elif dtype == 'retinography':
+                                peyes_info = ppatient_info[dtype]
+                                not_processed[group][patient][dtype] = []
+                                for eye, aeye_info in adtype_info.items():
+                                    if eye not in peyes_info:
+                                        not_processed[group][patient][dtype].append(eye)    
+                            elif dtype == 'XML':
+                                pscans = list(ppatient_info[dtype].values())[0]
+                                not_processed[group][patient][dtype] = []
+                                for xmlpath, scans in adtype_info.items():
+                                    npscans = [scan for scan in scans if scan not in pscans]
+                                    not_processed[group][patient][dtype] += npscans
+                            if len(not_processed[group][patient][dtype]) == 0:
+                                not_processed[group][patient].pop(dtype)
+                    if len(not_processed[group][patient]) == 0:
+                        not_processed[group].pop(patient)
+            if len(not_processed[group]) == 0:
+                not_processed.pop(group)
+    #print(json.dumps(not_processed, indent=4))
+    # Mostramos la información no procesada
+    print(" => AVAILABLE DATA TO PROCESS:")
+    if len(not_processed) == 0:
+        print("     [%] There is no data to process")
+        return
+    for group, group_info in not_processed.items():
+        if not bool(group_info): continue
+        print(f" + '{group.upper()}' GROUP")
+        for patient, patient_info in group_info.items():
+            if not bool(patient_info): continue
+            print(f" - '{patient}' has data to process")
+            if all_info:
+                str_info = json.dumps(patient_info, indent=4)
+                tab = "     "; str_info = str_info.replace('\n', '\n'+tab)
+                print(tab+str_info)
