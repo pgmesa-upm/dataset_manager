@@ -15,9 +15,9 @@ global_flags = {
 }
 
 def main():
-    print(" + DATASET MANAGER (ctrl-c to exit):")
+    print("\n + DATASET MANAGER (ctrl-c to exit):\n")
     print_help()
-    print(" -  Enter command: ")
+    print("\n -  Enter command: ")
     while True:
         try:
             command_line = str(input("> ")).split(" ")

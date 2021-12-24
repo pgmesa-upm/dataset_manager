@@ -2,10 +2,11 @@
 import os
 import json
 import copy
-import pandas_read_xml as pdx
 from typing import Union
 from pathlib import Path
-            
+from functools import cmp_to_key
+
+import pandas_read_xml as pdx
     
 class DatasetAccessError(Exception):
     pass
@@ -117,7 +118,17 @@ class RawDataset():
                 else:
                     patients.append(name)
         
-        return patients
+        def _compare(patient1:str, patient2:str):
+            num1 = int(patient1.split("-")[1])
+            num2 = int(patient2.split("-")[1])
+            if num1 < num2:
+                return -1
+            elif num1 > num2:
+                return 1
+            else:
+                return 0
+
+        return sorted(patients, key=cmp_to_key(_compare))
     
     def get_data_paths(self, group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, 
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, _withoutpaths:bool=False) -> Union[dict, Path]:
