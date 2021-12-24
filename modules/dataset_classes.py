@@ -295,11 +295,11 @@ class RawDataset():
         return xml_info
     
     def show_info(self, group:str=None, patient_num:Union[int, list[int]]=None,
-                    only_missing_info:bool=False, data_types:list[str]=None, only_summary:bool=False):
-        if data_types is not None:
-            if type(data_types) is not list:
+                    only_missing_info:bool=False, data_type:list[str]=None, only_summary:bool=False):
+        if data_type is not None:
+            if type(data_type) is not list:
                 raise DatasetAccessError('data_types parameter must be a list of strings')
-            for dtype in data_types:
+            for dtype in data_type:
                 if dtype not in self.data_types:
                     raise DatasetAccessError(f"'{dtype}' is not a valid data type")
         print(f"+ RAW DATASET INFO (Path -> '{self.dataset_path}')")
@@ -328,7 +328,7 @@ class RawDataset():
                 for patient, p_info in group_info.items():
                     missing_info = {}; has_missing_info = False
                     for dtype in self.data_types:
-                        if data_types is not None and dtype not in data_types: continue
+                        if data_type is not None and dtype not in data_type: continue
                         if dtype == 'retinography':
                             ret_info = p_info.get(dtype, None)
                             if not bool(ret_info):
@@ -388,17 +388,17 @@ class RawDataset():
                         if not has_missing_info:
                             if not only_missing_info: 
                                 msg = f" - '{patient}' has all adquisitions" 
-                                msg += "" if data_types is None else f" of type {data_types}"
+                                msg += "" if data_type is None else f" of type {data_type}"
                                 print(msg)
                         else:
                             print(f" - '{patient}' has missing info:")
                             str_missing_info = json.dumps(missing_info, indent=4)
                             tab = "     "; str_missing_info = str_missing_info.replace('\n', '\n'+tab)
                             print(tab+str_missing_info)
-                if data_types is None:
+                if data_type is None:
                     summary_dtypes = list(self.data_types.keys())
                 else:
-                    summary_dtypes = data_types
+                    summary_dtypes = data_type
                 # Summary
                 print(f" + SUMMARY:")
                 # OCT
@@ -652,11 +652,11 @@ class CleanDataset():
         return list(analysis_dict.keys())
     
     def show_info(self, group:str=None, patient_num:Union[int, list[int]]=None,
-                    only_missing_info:bool=False, data_types:list[str]=None, only_summary:bool=False):
-        if data_types is not None:
-            if type(data_types) is not list:
+                    only_missing_info:bool=False, data_type:list[str]=None, only_summary:bool=False):
+        if data_type is not None:
+            if type(data_type) is not list:
                 raise DatasetAccessError('data_types parameter must be a list of strings')
-            for dtype in data_types:
+            for dtype in data_type:
                 if dtype not in self.data_types:
                     raise DatasetAccessError(f"'{dtype}' is not a valid data type")
         print(f"+ CLEAN DATASET INFO (Path -> '{self.dataset_path}')")
@@ -685,7 +685,7 @@ class CleanDataset():
                 for patient, p_info in group_info.items():
                     missing_info = {}; has_missing_info = False
                     for dtype in self.data_types:
-                        if data_types is not None and dtype not in data_types: continue
+                        if data_type is not None and dtype not in data_type: continue
                         if dtype == 'retinography':
                             ret_info = p_info.get(dtype, None)
                             if not bool(ret_info):
@@ -745,17 +745,17 @@ class CleanDataset():
                         if not has_missing_info:
                             if not only_missing_info: 
                                 msg = f" - '{patient}' has all adquisitions" 
-                                msg += "" if data_types is None else f" of type {data_types}"
+                                msg += "" if data_type is None else f" of type {data_type}"
                                 print(msg)
                         else:
                             print(f" - '{patient}' has missing info:")
                             str_missing_info = json.dumps(missing_info, indent=4)
                             tab = "     "; str_missing_info = str_missing_info.replace('\n', '\n'+tab)
                             print(tab+str_missing_info)
-                if data_types is None:
+                if data_type is None:
                     summary_dtypes = list(self.data_types.keys())
                 else:
-                    summary_dtypes = data_types
+                    summary_dtypes = data_type
                 # Summary
                 print(f" + SUMMARY:")
                 # OCT
