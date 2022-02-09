@@ -18,10 +18,10 @@ import numpy as np
 from PIL import Image
 import tiffile as tiff
 
-import modules.oct_processing_lib as raw
-from modules.oct_processing_lib import Cube
-from modules.xml_processing_lib import process_xmlscans
-from modules.dataset_classes import RawDataset, CleanDataset, DatasetAccessError
+import upm_oct_dataset_utils.oct_processing_lib as raw
+from upm_oct_dataset_utils.oct_processing_lib import Cube
+from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
+from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError
 
 
 study_hard_disk_path = "D:/"
@@ -254,11 +254,13 @@ def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, li
                                     if eye not in peyes_info:
                                         not_processed[group][patient][dtype].append(eye)    
                             elif dtype == 'XML':
-                                pscans = list(ppatient_info[dtype].values())[0]
                                 not_processed[group][patient][dtype] = []
-                                for xmlpath, scans in adtype_info.items():
-                                    npscans = [scan for scan in scans if scan not in pscans]
-                                    not_processed[group][patient][dtype] += npscans
+                                list_ = list(ppatient_info[dtype].values())
+                                if len(list_) > 0: 
+                                    pscans = list_[0]
+                                    for xmlpath, scans in adtype_info.items():
+                                        npscans = [scan for scan in scans if scan not in pscans]
+                                        not_processed[group][patient][dtype] += npscans
                             if len(not_processed[group][patient][dtype]) == 0:
                                 not_processed[group][patient].pop(dtype)
                     if len(not_processed[group][patient]) == 0:
