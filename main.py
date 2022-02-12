@@ -121,3 +121,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("[!] Exit")
         exit(1)
+    except Exception as err:
+        print(f"[!] Unexpected error: '{err}'")
+        input("-> Press enter to exit")

@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 import os
 import sys
 import json
@@ -22,7 +23,7 @@ import upm_oct_dataset_utils.oct_processing_lib as raw
 from upm_oct_dataset_utils.oct_processing_lib import Cube
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
 from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError, StudyDate
-
+import upm_oct_dataset_utils.dataset_classes as ds
 
 study_hard_disk_path = "D:/"
 study_dir_name = "study_datasets"
@@ -30,7 +31,6 @@ clean_dataset_path = study_hard_disk_path+f"{study_dir_name}/clean_dataset"
 raw_dataset_path = study_hard_disk_path+f"{study_dir_name}/raw_dataset"
 clean_dataset = CleanDataset(clean_dataset_path)
 raw_dataset = RawDataset(raw_dataset_path)
-extra_info_fname = 'extra_info.json'
 
 axial_resolution = 5 # Micras
 transversal_resolution = 15 # Micras
@@ -64,8 +64,9 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
             logger.info(f"  + Processing '{patient}' data")
             clean_dataset.create_patient(grp, patient_num=p_num)
             # Vemos los estudios a procesar
-            studies = clean_dataset.get_studies(group, p_num, study=study)
+            studies = raw_dataset.get_studies(group, p_num, study=study)
             for std in studies:
+                logger.info(f"   -'{std}'")
                 clean_dataset.create_study(group, patient_num, std)
                 # Vemos que data types hay que procesar
                 if type(data_type) is str: data_type = [data_type]
@@ -73,10 +74,10 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
                 # iteramos
                 for dtype in data_type:
                     dtype_data:dict = raw_data_paths[grp][patient][std][dtype]
-                    clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, data_type=dtype)
+                    clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, study=std, data_type=dtype)
                     if not os.path.exists(clean_path): os.mkdir(clean_path)
                     if bool(dtype_data):
-                        if dtype == 'OCT' or dtype == 'OCTA':
+                        if dtype == ds.OCT or dtype == ds.OCTA:
                             for zone, zone_info in raw_dataset.zones.items():
                                 if zone in dtype_data:
                                     zone_data = dtype_data[zone]
@@ -97,7 +98,7 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
                                                 msg += " (overriding)"
                                             logger.info(msg)
                                             tiff.imwrite(file_path, data)              
-                        elif dtype == 'retinography':
+                        elif dtype == ds.RET:
                             for eye, eye_conv in raw_dataset.eyes.items():
                                 if eye in dtype_data:
                                     # Copiamos el fichero en el mismo formato pero con otro nombre
@@ -115,7 +116,7 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
                                         msg += " (overriding)"
                                     logger.info(msg)
                                     Image.fromarray(data).save(file_path, format='jpeg')           
-                        elif dtype == 'XML':
+                        elif dtype == ds.XML:
                             file_name = f'{patient}_analysis.json'
                             file_path = clean_path/file_name
                             if not OVERRIDE and os.path.exists(file_path):
@@ -138,10 +139,10 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
 # ----------------------------------------------
 def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False, timeit:bool=False) -> np.array:
     t0 = time.time()
-    if data_type == 'retinography':
+    if data_type == ds.RET:
         data = np.array(Image.open(data_path, formats=['jpeg']))
-    elif data_type == 'OCT':
-        if zone == 'macula':
+    elif data_type == ds.OCT:
+        if zone == ds.MACULA:
             resize_t = (int(width_scale_factor*1024), 1024) if resize else None
         else:
             resize_t = (512, 1024) if resize else None
@@ -149,14 +150,13 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
             data_path, data_type, zone, 
             resize=resize_t
         ).as_nparray()
-    elif data_type == 'OCTA':
+    elif data_type == ds.OCTA:
         data = process_cube(
             data_path, data_type, zone, 
             resize=(int(width_scale_factor*1024), 1024) if resize else None
         ).rotate_face(axe='x').resize_slices((350,350)).project().as_nparray()
     else:
         raise Exception(f"DATA_ERROR: '{data_type}' is not a valid data type")
-        
         
     if timeit:
         tf = time.time()
@@ -165,8 +165,8 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
     return data
 
 def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=None) -> Cube:
-    if modality == 'OCT':
-        if zone == 'macula':
+    if modality == ds.OCT:
+        if zone == ds.MACULA:
             cube = raw.process_oct(
                 data_path, 
                 width_pixels=256, # Num A-Scans/2
@@ -175,7 +175,7 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 vertical_flip=True,
                 resize=resize
             )
-        elif zone == 'optic-nerve':
+        elif zone == ds.OPTIC_DISC:
             cube = raw.process_oct(
                 data_path, 
                 width_pixels=100,
@@ -186,9 +186,8 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
             )
         else:
             raise Exception(f"DATA_ERROR: '{zone}' is not a valid zone")
-
-    elif modality == 'OCTA':
-        if zone == 'macula' or zone == 'optic-nerve':
+    elif modality == ds.OCTA:
+        if zone == ds.MACULA or zone == ds.OPTIC_DISC:
             cube = raw.process_oct(
                 data_path, 
                 width_pixels=175,
@@ -202,18 +201,14 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
     
     return cube
 
-def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, 
+def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
                        data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, all_info=False):
-    # data = raw_dataset.get_data_paths(group="RIS")
-    # print(json.dumps(data, indent=4)); return
-    # # Hallamos los datos no procesados
-
-    
+    # Hallamos los datos no procesados
     available_info = raw_dataset.get_data_paths(
-        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye,
+        group=group, patient_num=patient_num, study=study, data_type=data_type, zone=zone, eye=eye,
     )
     without_paths = raw_dataset.get_data_paths(
-        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye,
+        group=group, patient_num=patient_num, study=study, data_type=data_type, zone=zone, eye=eye,
         _withoutpaths=True
     )
     processed_info = clean_dataset.get_data_paths()
@@ -228,51 +223,65 @@ def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, li
             for patient, apatient_info in agroup_info.items():
                 if not bool(apatient_info): continue
                 if patient not in pgroup_info:
-                    not_processed[group][patient] = without_paths[group][patient]
+                    not_processed[group][patient] = deepcopy(without_paths[group][patient])
+                    for std, std_info in without_paths[group][patient].items():
+                        if not bool(std_info):
+                            not_processed[group][patient].pop(std)
+                    if len(not_processed[group][patient]) == 0:
+                        not_processed[group].pop(patient)
                 else:
                     ppatient_info = pgroup_info[patient]
                     not_processed[group][patient] = {}
-                    for dtype, adtype_info in apatient_info.items():
-                        if not bool(adtype_info): continue
-                        if dtype not in ppatient_info:
-                            not_processed[group][patient][dtype] = without_paths[group][patient][dtype]
+                    for std, astudy_info in apatient_info.items():
+                        if not bool(astudy_info): continue
+                        if std not in ppatient_info:
+                            not_processed[group][patient][std] = without_paths[group][patient][std]
                         else:
-                            if dtype == 'OCTA' or dtype =='OCT':
-                                pzones_info = ppatient_info[dtype]
-                                not_processed[group][patient][dtype] = {}
-                                for zone, azone_info in adtype_info.items():
-                                    if not bool(azone_info): continue
-                                    if zone not in pzones_info:
-                                        not_processed[group][patient][dtype][zone] = without_paths[group][patient][dtype][zone]
-                                    else:
-                                        peyes_info = pzones_info[zone]
-                                        not_processed[group][patient][dtype][zone] = []
-                                        for eye, aeye_info in azone_info.items():
+                            pstudy_info = ppatient_info[std]
+                            not_processed[group][patient][std] = {}
+                            for dtype, adtype_info in astudy_info.items():
+                                if not bool(adtype_info): continue
+                                if dtype not in pstudy_info:
+                                    not_processed[group][patient][std][dtype] = without_paths[group][patient][std][dtype]
+                                else:
+                                    if dtype == ds.OCTA or dtype == ds.OCT:
+                                        pzones_info = pstudy_info[dtype]
+                                        not_processed[group][patient][std][dtype] = {}
+                                        for zone, azone_info in adtype_info.items():
+                                            if not bool(azone_info): continue
+                                            if zone not in pzones_info:
+                                                not_processed[group][patient][std][dtype][zone] = without_paths[group][patient][std][dtype][zone]
+                                            else:
+                                                peyes_info = pzones_info[zone]
+                                                not_processed[group][patient][std][dtype][zone] = []
+                                                for eye, aeye_info in azone_info.items():
+                                                    if eye not in peyes_info:
+                                                        not_processed[group][patient][std][dtype][zone].append(eye)
+                                                if len(not_processed[group][patient][std][dtype][zone]) == 0:
+                                                    not_processed[group][patient][std][dtype].pop(zone)
+                                    elif dtype == ds.RET:
+                                        peyes_info = pstudy_info[dtype]
+                                        not_processed[group][patient][std][dtype] = []
+                                        for eye, aeye_info in adtype_info.items():
                                             if eye not in peyes_info:
-                                                not_processed[group][patient][dtype][zone].append(eye)
-                                        if len(not_processed[group][patient][dtype][zone]) == 0:
-                                            not_processed[group][patient][dtype].pop(zone)
-                            elif dtype == 'retinography':
-                                peyes_info = ppatient_info[dtype]
-                                not_processed[group][patient][dtype] = []
-                                for eye, aeye_info in adtype_info.items():
-                                    if eye not in peyes_info:
-                                        not_processed[group][patient][dtype].append(eye)    
-                            elif dtype == 'XML':
-                                not_processed[group][patient][dtype] = []
-                                list_ = list(ppatient_info[dtype].values())
-                                if len(list_) > 0: 
-                                    pscans = list_[0]
-                                    for xmlpath, scans in adtype_info.items():
-                                        npscans = [scan for scan in scans if scan not in pscans]
-                                        not_processed[group][patient][dtype] += npscans
-                            if len(not_processed[group][patient][dtype]) == 0:
-                                not_processed[group][patient].pop(dtype)
+                                                not_processed[group][patient][std][dtype].append(eye)    
+                                    elif dtype == ds.XML:
+                                        not_processed[group][patient][std][dtype] = []
+                                        list_ = list(pstudy_info[dtype].values())
+                                        if len(list_) > 0: 
+                                            pscans = list_[0]
+                                            for xmlpath, scans in adtype_info.items():
+                                                npscans = [scan for scan in scans if scan not in pscans]
+                                                not_processed[group][patient][std][dtype] += npscans
+                                    if len(not_processed[group][patient][std][dtype]) == 0:
+                                        not_processed[group][patient][std].pop(dtype)
+                            if len(not_processed[group][patient][std]) == 0:
+                                not_processed[group][patient].pop(std)
                     if len(not_processed[group][patient]) == 0:
                         not_processed[group].pop(patient)
             if len(not_processed[group]) == 0:
                 not_processed.pop(group)
-    #print(json.dumps(not_processed, indent=4))
+    # print(json.dumps(not_processed, indent=4))
     # Mostramos la información no procesada
     print(" => AVAILABLE DATA TO PROCESS:")
     if len(not_processed) == 0:
