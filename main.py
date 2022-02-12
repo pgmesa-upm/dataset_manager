@@ -35,40 +35,40 @@ def main():
     print_help()
     print("\n -  Enter command: ")
     while True:
-        # try:
-        command_line = str(input("> ")).split(" ")
-        # Filtramos los argumentos no validos
-        command_line = [arg for arg in command_line if arg != ""]
-        if len(command_line) == 0: continue
-        command = command_line.pop(0)
-        if command in global_flags:
-            flag = command
-            if flag == '-h': print_help()
-            elif flag == "-hq": show_how_to_query()
-        elif command in commands:
-            if command == 'raw' or command == "clean":
-                if command == "raw": dataset = raw_dataset
-                else: dataset = clean_dataset
-                m = False; s = False
-                # 2 posibles modos, toda la info, solo la sobrante, solo el summary
-                if '-m' in command_line: m = True; command_line.remove('-m')
-                elif '-s' in command_line: s = True; command_line.remove('-s')
-                queries = process_queries(command_line)
-                dataset.show_info(**queries, only_missing_info=m, only_summary=s)
-            elif command == "check":
-                a = False
-                if '-a' in command_line: a = True; command_line.remove('-a')
-                queries = process_queries(command_line)
-                compare_datasets(**queries, all_info=a)
-            elif command == "process":
-                o = False
-                if '-o' in command_line: o = True; command_line.remove('-o')
-                queries = process_queries(command_line)
-                process_raw_dataset(**queries, OVERRIDE=o)
-        else:
-            print(f"[!] '{command}' command doesn't exist in the program")
-        # except Exception as err:
-        #     print(f"[!] '{err}'")
+        try:
+            command_line = str(input("> ")).split(" ")
+            # Filtramos los argumentos no validos
+            command_line = [arg for arg in command_line if arg != ""]
+            if len(command_line) == 0: continue
+            command = command_line.pop(0)
+            if command in global_flags:
+                flag = command
+                if flag == '-h': print_help()
+                elif flag == "-hq": show_how_to_query()
+            elif command in commands:
+                if command == 'raw' or command == "clean":
+                    if command == "raw": dataset = raw_dataset
+                    else: dataset = clean_dataset
+                    m = False; s = False
+                    # 2 posibles modos, toda la info, solo la sobrante, solo el summary
+                    if '-m' in command_line: m = True; command_line.remove('-m')
+                    elif '-s' in command_line: s = True; command_line.remove('-s')
+                    queries = process_queries(command_line)
+                    dataset.show_info(**queries, only_missing_info=m, only_summary=s)
+                elif command == "check":
+                    a = False
+                    if '-a' in command_line: a = True; command_line.remove('-a')
+                    queries = process_queries(command_line)
+                    compare_datasets(**queries, all_info=a)
+                elif command == "process":
+                    o = False
+                    if '-o' in command_line: o = True; command_line.remove('-o')
+                    queries = process_queries(command_line)
+                    process_raw_dataset(**queries, OVERRIDE=o)
+            else:
+                print(f"[!] '{command}' command doesn't exist in the program")
+        except Exception as err:
+            print(f"[!] '{err}'")
 
 def process_queries(cmd_line:list) -> dict:
     queries = dict(
@@ -142,6 +142,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("[!] Exit")
         exit(1)
-    # except Exception as err:
-    #     print(f"[!] Unexpected error: '{err}'")
-    #     input("-> Press enter to exit")
+    except Exception as err:
+        print(f"[!] Unexpected error: '{err}'")
+        input("-> Press enter to exit")
