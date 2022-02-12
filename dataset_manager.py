@@ -65,7 +65,7 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
             studies = raw_dataset.get_studies(grp, p_num, study=study)
             for std in studies:
                 logger.info(f"   -'{std}'")
-                clean_dataset.create_study(grp, patient_num, std)
+                clean_dataset.create_study(grp, p_num, std)
                 # Vemos que data types hay que procesar
                 if type(data_type) is str: data_type = [data_type]
                 elif data_type is None: data_type = raw_dataset.data_types   
