@@ -21,7 +21,7 @@ import tiffile as tiff
 import upm_oct_dataset_utils.oct_processing_lib as raw
 from upm_oct_dataset_utils.oct_processing_lib import Cube
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
-from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError
+from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError, StudyDate
 
 
 study_hard_disk_path = "D:/"
@@ -30,6 +30,7 @@ clean_dataset_path = study_hard_disk_path+f"{study_dir_name}/clean_dataset"
 raw_dataset_path = study_hard_disk_path+f"{study_dir_name}/raw_dataset"
 clean_dataset = CleanDataset(clean_dataset_path)
 raw_dataset = RawDataset(raw_dataset_path)
+extra_info_fname = 'extra_info.json'
 
 axial_resolution = 5 # Micras
 transversal_resolution = 15 # Micras
@@ -39,7 +40,7 @@ width_scale_factor = transv_axial_ratio/2
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
+def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
                         data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, OVERRIDE=False):
     if not os.path.exists(study_hard_disk_path):
         logger.error(f" The study hard disk is not connected to the computer '{study_hard_disk_path}'")
@@ -48,7 +49,7 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None,
     logger.info(f" -> Raw Dataset Path => '{raw_dataset_path}'")
     logger.info(f" -> Clean Dataset Path => '{clean_dataset_path}'")
     raw_data_paths = raw_dataset.get_data_paths(
-        group=group, patient_num=patient_num, data_type=data_type, zone=zone, eye=eye
+        group=group, patient_num=patient_num, study=study, data_type=data_type, zone=zone, eye=eye
     )
     for grp in raw_dataset.groups:
         if group is not None and grp != group: continue
@@ -62,71 +63,75 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None,
             patient = f'patient-{p_num}'
             logger.info(f"  + Processing '{patient}' data")
             clean_dataset.create_patient(grp, patient_num=p_num)
-            # Vemos que data types hay que procesar
-            if type(data_type) is str: data_type = [data_type]
-            elif data_type is None: data_type = raw_dataset.data_types   
-            # iteramos
-            for dtype in data_type:
-                dtype_data:dict = raw_data_paths[grp][patient][dtype]
-                clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, data_type=dtype)
-                if not os.path.exists(clean_path): os.mkdir(clean_path)
-                if bool(dtype_data):
-                    if dtype == 'OCT' or dtype == 'OCTA':
-                        for zone, zone_info in raw_dataset.zones.items():
-                            if zone in dtype_data:
-                                zone_data = dtype_data[zone]
-                                for eye, eye_conv in raw_dataset.eyes.items():
-                                    if eye in zone_data:
-                                        path = Path(zone_data[eye])
-                                        raw_file_info = raw_dataset.split_file_name(path.name, dtype)
-                                        adq_date = raw_file_info['adquisition_date']
-                                        adq_name = zone_info['adquisitions_name']
-                                        file_name = patient+"_"+adq_name[dtype]+"_"+adq_date+"_"+eye_conv+'.tif'
-                                        file_path = clean_path/file_name
-                                        if not OVERRIDE and os.path.exists(file_path):
-                                            logger.info(f"      -> (.tif) '{dtype}_{zone}_{eye}' already exists")
-                                            continue
-                                        data = process_image2D3D(path, data_type=dtype, zone=zone, resize=True)
-                                        msg = f"      -> saving raw (.img) '{dtype}_{zone}_{eye}' as tiff (.tif)"
-                                        if OVERRIDE and os.path.exists(file_path):
-                                            msg += " (overriding)"
-                                        logger.info(msg)
-                                        tiff.imwrite(file_path, data)              
-                    elif dtype == 'retinography':
-                        for eye, eye_conv in raw_dataset.eyes.items():
-                            if eye in dtype_data:
-                                # Copiamos el fichero en el mismo formato pero con otro nombre
-                                path = Path(dtype_data[eye])
-                                raw_file_info = raw_dataset.split_file_name(path.name, dtype)
-                                adq_name = raw_file_info['adquisition_date']
-                                file_name = patient+"_"+dtype+"_"+adq_name+"_"+eye_conv+".jpg"
-                                file_path = clean_path/file_name
-                                if not OVERRIDE and os.path.exists(file_path):
-                                    logger.info(f"      -> (.jpg) '{dtype}_{eye}' already exists")
-                                    continue
-                                data = process_image2D3D(path, data_type=dtype, zone=zone, resize=True)
-                                msg = f"      -> saving (.jpg) '{dtype}_{eye}'"
-                                if OVERRIDE and os.path.exists(file_path):
-                                    msg += " (overriding)"
-                                logger.info(msg)
-                                Image.fromarray(data).save(file_path, format='jpeg')           
-                    elif dtype == 'XML':
-                        file_name = f'{patient}_analysis.json'
-                        file_path = clean_path/file_name
-                        if not OVERRIDE and os.path.exists(file_path):
-                            logger.info(f"      -> '{file_name}' already exists")
-                            continue
-                        scans = {}
-                        for xml_path, xml_scans in dtype_data.items():
-                            logger.debug(f"{xml_path}\n{xml_scans}")
-                            processed_xml:dict = process_xmlscans(xml_path, xml_scans)
-                            scans.update(processed_xml)
-                        msg = f"      -> saving '{file_name}'"
-                        if OVERRIDE and os.path.exists(file_path):
-                            msg += " (overriding)"
-                        logger.info(msg)
-                        with open(file_path, 'w') as file:
-                            json.dump(scans, file, indent=4)
+            # Vemos los estudios a procesar
+            studies = clean_dataset.get_studies(group, p_num, study=study)
+            for std in studies:
+                clean_dataset.create_study(group, patient_num, std)
+                # Vemos que data types hay que procesar
+                if type(data_type) is str: data_type = [data_type]
+                elif data_type is None: data_type = raw_dataset.data_types   
+                # iteramos
+                for dtype in data_type:
+                    dtype_data:dict = raw_data_paths[grp][patient][std][dtype]
+                    clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, data_type=dtype)
+                    if not os.path.exists(clean_path): os.mkdir(clean_path)
+                    if bool(dtype_data):
+                        if dtype == 'OCT' or dtype == 'OCTA':
+                            for zone, zone_info in raw_dataset.zones.items():
+                                if zone in dtype_data:
+                                    zone_data = dtype_data[zone]
+                                    for eye, eye_conv in raw_dataset.eyes.items():
+                                        if eye in zone_data:
+                                            path = Path(zone_data[eye])
+                                            raw_file_info = raw_dataset.split_file_name(path.name, dtype)
+                                            adq_date = raw_file_info['adquisition_date']
+                                            adq_name = zone_info['adquisitions_name']
+                                            file_name = patient+"_"+adq_name[dtype]+"_"+adq_date+"_"+eye_conv+'.tif'
+                                            file_path = clean_path/file_name
+                                            if not OVERRIDE and os.path.exists(file_path):
+                                                logger.info(f"      -> (.tif) '{dtype}_{zone}_{eye}' already exists")
+                                                continue
+                                            data = process_image2D3D(path, data_type=dtype, zone=zone, resize=True)
+                                            msg = f"      -> saving raw (.img) '{dtype}_{zone}_{eye}' as tiff (.tif)"
+                                            if OVERRIDE and os.path.exists(file_path):
+                                                msg += " (overriding)"
+                                            logger.info(msg)
+                                            tiff.imwrite(file_path, data)              
+                        elif dtype == 'retinography':
+                            for eye, eye_conv in raw_dataset.eyes.items():
+                                if eye in dtype_data:
+                                    # Copiamos el fichero en el mismo formato pero con otro nombre
+                                    path = Path(dtype_data[eye])
+                                    raw_file_info = raw_dataset.split_file_name(path.name, dtype)
+                                    adq_name = raw_file_info['adquisition_date']
+                                    file_name = patient+"_"+dtype+"_"+adq_name+"_"+eye_conv+".jpg"
+                                    file_path = clean_path/file_name
+                                    if not OVERRIDE and os.path.exists(file_path):
+                                        logger.info(f"      -> (.jpg) '{dtype}_{eye}' already exists")
+                                        continue
+                                    data = process_image2D3D(path, data_type=dtype, zone=zone, resize=True)
+                                    msg = f"      -> saving (.jpg) '{dtype}_{eye}'"
+                                    if OVERRIDE and os.path.exists(file_path):
+                                        msg += " (overriding)"
+                                    logger.info(msg)
+                                    Image.fromarray(data).save(file_path, format='jpeg')           
+                        elif dtype == 'XML':
+                            file_name = f'{patient}_analysis.json'
+                            file_path = clean_path/file_name
+                            if not OVERRIDE and os.path.exists(file_path):
+                                logger.info(f"      -> '{file_name}' already exists")
+                                continue
+                            scans = {}
+                            for xml_path, xml_scans in dtype_data.items():
+                                logger.debug(f"{xml_path}\n{xml_scans}")
+                                processed_xml:dict = process_xmlscans(xml_path, xml_scans)
+                                scans.update(processed_xml)
+                            msg = f"      -> saving '{file_name}'"
+                            if OVERRIDE and os.path.exists(file_path):
+                                msg += " (overriding)"
+                            logger.info(msg)
+                            with open(file_path, 'w') as file:
+                                json.dump(scans, file, indent=4)
                             
     logger.info(" ------------------ End, Raw Dataset processed ------------------")
     
