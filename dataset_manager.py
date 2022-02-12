@@ -1,29 +1,25 @@
 
-from copy import deepcopy
+# Built-in modules
 import os
 import sys
 import json
-# -- Python version check ---
-dig1, dig2 = sys.version.split('.')[:2]
-req_d1, req_d2 = 3, 9
-if req_d1 > int(dig1) or req_d2 > int(dig2):
-    print(f"ERROR: The python version must be {req_d1}.{req_d2} or higher")
-    exit(1)
-# ---------------------------
 import time
 import logging
 from typing import Union
 from pathlib import Path
+from copy import deepcopy
 
+# -- External dependencies (pip)
 import numpy as np
 from PIL import Image
 import tiffile as tiff
-
+# pgmesa public PyPI package
 import upm_oct_dataset_utils.oct_processing_lib as raw
 from upm_oct_dataset_utils.oct_processing_lib import Cube
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
 from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError, StudyDate
 import upm_oct_dataset_utils.dataset_classes as ds
+
 
 study_hard_disk_path = "D:/"
 study_dir_name = "study_datasets"
@@ -40,7 +36,7 @@ width_scale_factor = transv_axial_ratio/2
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
+def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
                         data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, OVERRIDE=False):
     if not os.path.exists(study_hard_disk_path):
         logger.error(f" The study hard disk is not connected to the computer '{study_hard_disk_path}'")
@@ -52,7 +48,9 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
         group=group, patient_num=patient_num, study=study, data_type=data_type, zone=zone, eye=eye
     )
     for grp in raw_dataset.groups:
-        if group is not None and grp != group: continue
+        if group is not None:
+            if type(group) == str and grp != group: continue
+            elif type(group) == list and grp not in group: continue
         logger.info(f" => {grp.upper()} GROUP")
         # vemos que pacientes hay que procesar
         if patient_num is None: pat_iterable = raw_dataset.get_patients(grp, as_int=True)
@@ -64,10 +62,10 @@ def process_raw_dataset(group:str=None, patient_num:Union[int, list[int]]=None, 
             logger.info(f"  + Processing '{patient}' data")
             clean_dataset.create_patient(grp, patient_num=p_num)
             # Vemos los estudios a procesar
-            studies = raw_dataset.get_studies(group, p_num, study=study)
+            studies = raw_dataset.get_studies(grp, p_num, study=study)
             for std in studies:
                 logger.info(f"   -'{std}'")
-                clean_dataset.create_study(group, patient_num, std)
+                clean_dataset.create_study(grp, patient_num, std)
                 # Vemos que data types hay que procesar
                 if type(data_type) is str: data_type = [data_type]
                 elif data_type is None: data_type = raw_dataset.data_types   
