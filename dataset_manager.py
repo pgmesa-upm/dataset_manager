@@ -17,9 +17,10 @@ import tiffile as tiff
 import upm_oct_dataset_utils.oct_processing_lib as raw
 from upm_oct_dataset_utils.oct_processing_lib import Cube
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
-from upm_oct_dataset_utils.dataset_classes import RawDataset, CleanDataset, DatasetAccessError, StudyDate
+from upm_oct_dataset_utils.dataset_classes import (
+    RawDataset, CleanDataset, DatasetAccessError, StudyDate
+)
 import upm_oct_dataset_utils.dataset_classes as ds
-
 
 study_hard_disk_path = "D:/"
 study_dir_name = "study_datasets"

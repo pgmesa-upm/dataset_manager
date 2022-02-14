@@ -22,7 +22,8 @@ commands = {
     'clean': "Shows clean dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s)",
     'check': ("Shows the difference between the 2 datasets. Is usefull to see if there is available data to process "+ 
                 "(add -a to show all info)"),
-    'process': "Processes the entire raw dataset (add -o to override existing clean files)"
+    'process': "Processes the entire raw dataset (add -o to override existing clean files)",
+    'exit': 'Exits from the program'
 }
 
 global_flags = {
@@ -34,7 +35,8 @@ def main():
     print("\n + DATASET MANAGER (ctrl-c to exit):\n")
     print_help()
     print("\n -  Enter command: ")
-    while True:
+    exit_var = False
+    while not exit_var:
         try:
             command_line = str(input("> ")).split(" ")
             # Filtramos los argumentos no validos
@@ -65,6 +67,9 @@ def main():
                     if '-o' in command_line: o = True; command_line.remove('-o')
                     queries = process_queries(command_line)
                     process_raw_dataset(**queries, OVERRIDE=o)
+                elif command == "exit":
+                    print("[%] Exiting...")
+                    exit_var = True
             else:
                 print(f"[!] '{command}' command doesn't exist in the program")
         except Exception as err:
@@ -106,8 +111,8 @@ def process_queries(cmd_line:list) -> dict:
     for key, val in queries.items():
         if len(val) == 0:
             val = None
-        elif len(val) == 1:
-            val = val[0]
+        # if len(val) == 1:
+        #     val = val[0]
         queries[key] = val
         
     return queries
