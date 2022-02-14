@@ -33,6 +33,7 @@ Al abrir esta consola, también se desplegará parcialemente la ayuda del progra
      => 'clean': Shows clean dataset info. 2 extra modes: 1. only missing info (add -m) 2. only summary (add -s)
      => 'check': Shows the difference between the 2 datasets. Is usefull to see if there is available data to process (add -a to show all info)
      => 'process': Processes the entire raw dataset (add -o to override existing clean files)
+     => 'exit': Exits from the program
 [?] Global Flags:
      => '-h': shows command help
      => '-hq': shows information about how to use specific queries in a command
