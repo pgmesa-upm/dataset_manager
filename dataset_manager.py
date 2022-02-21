@@ -65,15 +65,18 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
             # Vemos los estudios a procesar
             studies = raw_dataset.get_studies(grp, p_num, study=study)
             for std in studies:
-                logger.info(f"   -'{std}'")
-                clean_dataset.create_study(grp, p_num, std)
+                std_date_raw = std.split(" ")[1]
+                std_date = std_date_raw[:4]+"-"+std_date_raw[4:6]+"-"+std_date_raw[6:]
+                clean_std = "study_"+std_date
+                logger.info(f"   -'{clean_std}'")
+                clean_dataset.create_study(grp, p_num, clean_std)
                 # Vemos que data types hay que procesar
                 if type(data_type) is str: data_type = [data_type]
                 elif data_type is None: data_type = raw_dataset.data_types   
                 # iteramos
                 for dtype in data_type:
                     dtype_data:dict = raw_data_paths[grp][patient][std][dtype]
-                    clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, study=std, data_type=dtype)
+                    clean_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, study=clean_std, data_type=dtype)
                     if not os.path.exists(clean_path): os.mkdir(clean_path)
                     if bool(dtype_data):
                         if dtype == ds.OCT or dtype == ds.OCTA:
@@ -85,8 +88,9 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                                             path = Path(zone_data[eye])
                                             raw_file_info = raw_dataset.split_file_name(path.name, dtype)
                                             adq_date = raw_file_info['adquisition_date']
+                                            adq_hour = raw_file_info['hour']
                                             adq_name = zone_info['adquisitions_name']
-                                            file_name = patient+"_"+adq_name[dtype]+"_"+adq_date+"_"+eye_conv+'.tif'
+                                            file_name = patient+"_"+adq_name[dtype]+"_"+adq_date+"_"+adq_hour+"_"+eye_conv+'.tif'
                                             file_path = clean_path/file_name
                                             if not OVERRIDE and os.path.exists(file_path):
                                                 logger.info(f"      -> (.tif) '{dtype}_{zone}_{eye}' already exists")
@@ -123,8 +127,9 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                                 continue
                             scans = {}
                             for xml_path, xml_scans in dtype_data.items():
+                                if len(xml_scans) == 0: continue
                                 logger.debug(f"{xml_path}\n{xml_scans}")
-                                processed_xml:dict = process_xmlscans(xml_path, xml_scans)
+                                processed_xml:dict = process_xmlscans(xml_path, std, xml_scans)
                                 scans.update(processed_xml)
                             msg = f"      -> saving '{file_name}'"
                             if OVERRIDE and os.path.exists(file_path):
@@ -232,11 +237,14 @@ def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, li
                     ppatient_info = pgroup_info[patient]
                     not_processed[group][patient] = {}
                     for std, astudy_info in apatient_info.items():
+                        std_date_raw = std.split(" ")[1]
+                        std_date = std_date_raw[:4]+"-"+std_date_raw[4:6]+"-"+std_date_raw[6:]
+                        clean_std = "study_"+std_date
                         if not bool(astudy_info): continue
-                        if std not in ppatient_info:
+                        if clean_std not in ppatient_info:
                             not_processed[group][patient][std] = without_paths[group][patient][std]
                         else:
-                            pstudy_info = ppatient_info[std]
+                            pstudy_info = ppatient_info[clean_std]
                             not_processed[group][patient][std] = {}
                             for dtype, adtype_info in astudy_info.items():
                                 if not bool(adtype_info): continue
