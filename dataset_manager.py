@@ -65,8 +65,7 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
             # Vemos los estudios a procesar
             studies = raw_dataset.get_studies(grp, p_num, study=study)
             for std in studies:
-                std_date_raw = std.split(" ")[1]
-                std_date = std_date_raw[:4]+"-"+std_date_raw[4:6]+"-"+std_date_raw[6:]
+                std_date = raw_dataset.get_studydir_date(std).as_str(year_first=True)
                 clean_std = "study_"+std_date
                 logger.info(f"   -'{clean_std}'")
                 clean_dataset.create_study(grp, p_num, clean_std)
@@ -129,7 +128,8 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                             for xml_path, xml_scans in dtype_data.items():
                                 if len(xml_scans) == 0: continue
                                 logger.debug(f"{xml_path}\n{xml_scans}")
-                                processed_xml:dict = process_xmlscans(xml_path, std, xml_scans)
+                                std_date_obj = StudyDate.from_str(std_date, sep='-', year_first=True)
+                                processed_xml:dict = process_xmlscans(xml_path, std_date_obj, xml_scans)
                                 scans.update(processed_xml)
                             msg = f"      -> saving '{file_name}'"
                             if OVERRIDE and os.path.exists(file_path):
@@ -237,8 +237,7 @@ def compare_datasets(group:Union[str, list[str]]=None, patient_num:Union[int, li
                     ppatient_info = pgroup_info[patient]
                     not_processed[group][patient] = {}
                     for std, astudy_info in apatient_info.items():
-                        std_date_raw = std.split(" ")[1]
-                        std_date = std_date_raw[:4]+"-"+std_date_raw[4:6]+"-"+std_date_raw[6:]
+                        std_date = raw_dataset.get_studydir_date(std).as_str(year_first=True)
                         clean_std = "study_"+std_date
                         if not bool(astudy_info): continue
                         if clean_std not in ppatient_info:
