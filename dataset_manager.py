@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+import shutil
 import logging
 from typing import Union
 from pathlib import Path
@@ -21,6 +22,8 @@ from upm_oct_dataset_utils.dataset_classes import (
     RawDataset, CleanDataset, DatasetAccessError, StudyDate
 )
 import upm_oct_dataset_utils.dataset_classes as ds
+
+from extra_data.main import dest_dir_name
 
 study_hard_disk_path = "D:/"
 study_dir_name = "study_datasets"
@@ -62,6 +65,22 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
             patient = f'patient-{p_num}'
             logger.info(f"  + Processing '{patient}' data")
             clean_dataset.create_patient(grp, patient_num=p_num)
+            # Patient info si existe un XML
+            xml_path = None
+            studies_dict = raw_data_paths[grp][patient]
+            for std_info in studies_dict.values():
+                try:
+                    xml_path = list(std_info[ds.XML].keys())[0]
+                    break
+                except: pass
+            if xml_path is not None:
+                xml_path = Path(xml_path).resolve()
+                raw_file_info = raw_dataset.split_file_name(xml_path.name, ds.XML)
+                birth_year = raw_file_info['birth_year_date'][:4]
+                sex = raw_file_info['sex']
+                p_dir_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num)
+                with open(p_dir_path/f'{patient}.json', 'w') as file:
+                    json.dump({"SEX":sex, "BIRTH_YEAR": birth_year}, file, indent=4)    
             # Vemos los estudios a procesar
             studies = raw_dataset.get_studies(grp, p_num, study=study)
             for std in studies:
@@ -69,6 +88,15 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                 clean_std = "study_"+std_date
                 logger.info(f"   -'{clean_std}'")
                 clean_dataset.create_study(grp, p_num, clean_std)
+                # Copiamos la extra info al directorio clean
+                study_dir_path = raw_dataset.get_dir_path(group=grp, patient_num=p_num, study=std)
+                clean_study_dir_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, study=clean_std)
+                extra_info_path = study_dir_path/dest_dir_name
+                if os.path.exists(extra_info_path):
+                    l = os.listdir(extra_info_path)
+                    for f in l:
+                        logger.info(f"      -> copying '{f}'...")
+                        shutil.copy(extra_info_path/f, clean_study_dir_path)
                 # Vemos que data types hay que procesar
                 if type(data_type) is str: data_type = [data_type]
                 elif data_type is None: data_type = raw_dataset.data_types   
@@ -119,7 +147,7 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                                     logger.info(msg)
                                     Image.fromarray(data).save(file_path, format='jpeg')           
                         elif dtype == ds.XML:
-                            file_name = f'{patient}_analysis.json'
+                            file_name = f'{patient}_{std_date}_analysis.json'
                             file_path = clean_path/file_name
                             if not OVERRIDE and os.path.exists(file_path):
                                 logger.info(f"      -> '{file_name}' already exists")
