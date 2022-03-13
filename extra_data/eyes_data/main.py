@@ -16,7 +16,6 @@ raw_ds = RawDataset(raw_ds_path)
 execution_path = Path(__file__).resolve().parent
 excel_path = execution_path/"./eyes_data.xlsx"
 
-dest_fname = "eye-data.json"
 dest_dir_name = 'extra-info'
 
 date_format = "%d-%m-%Y"
@@ -48,7 +47,7 @@ global_flags = {
     '-h': "shows command help",
 }
 
-def main():
+def eyes_data_shell():
     print("\n + Eye Data Processor (ctrl-c to exit):\n")
     print(f" => Excel Path: '{excel_path}'")
     print_help()
@@ -56,7 +55,7 @@ def main():
     exit_var = False
     while not exit_var:
         try:
-            command_line = str(input("> ")).split(" ")
+            command_line = str(input("/eyes-data> ")).split(" ")
             # Filtramos los argumentos no validos
             command_line = [arg for arg in command_line if arg != ""]
             if len(command_line) == 0: continue
@@ -169,6 +168,10 @@ def process_excel(override:bool=False, ask_for_each:bool=False, quiet:bool=False
                 print(err)
                 continue
             dest_dir_path = study_path/dest_dir_name
+            try:
+                os.remove(dest_dir_path/'eye-data.json')
+            except: pass
+            dest_fname = (f"patient-{pnum}"+"_"+std_date.as_str(year_first=True)+"_"+"eyes"+".json")
             dest_fpath = dest_dir_path/dest_fname
             if os.path.exists(dest_fpath):
                 if not override:
@@ -192,13 +195,3 @@ def process_excel(override:bool=False, ask_for_each:bool=False, quiet:bool=False
             log("[%] Completed!")
         log("[%] Group finished")
     print(f"--- Finished, excel has been processed ---")
-            
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("[!] Exit")
-        exit(1)
-    except Exception as err:
-        print(f"[!] Unexpected error: '{err}'")
-        input("-> Press enter to exit")

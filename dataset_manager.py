@@ -23,7 +23,7 @@ from upm_oct_dataset_utils.dataset_classes import (
 )
 import upm_oct_dataset_utils.dataset_classes as ds
 
-from extra_data.main import dest_dir_name
+from extra_data.eyes_data.main import dest_dir_name
 
 study_hard_disk_path = "D:/"
 study_dir_name = "study_datasets"

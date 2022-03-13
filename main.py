@@ -9,7 +9,9 @@ if req_d1 > int(dig1) or req_d2 > int(dig2):
     print(f"ERROR: The python version must be {req_d1}.{req_d2} or higher")
     exit(1)
 # ---------------------------
+
 try:
+    from extra_data.eyes_data.main import eyes_data_shell
     from dataset_manager import process_raw_dataset, raw_dataset, clean_dataset, compare_datasets, StudyDate
 except ModuleNotFoundError as err:
     print("[!] ERROR: No se han instalado todas las dependencias del programa",
@@ -23,6 +25,7 @@ commands = {
     'check': ("Shows the difference between the 2 datasets. Is usefull to see if there is available data to process "+ 
                 "(add -a to show all info)"),
     'process': "Processes the entire raw dataset (add -o to override existing clean files)",
+    'eyes': "Activates eyes-data shell",
     'exit': 'Exits from the program'
 }
 
@@ -67,6 +70,8 @@ def main():
                     if '-o' in command_line: o = True; command_line.remove('-o')
                     queries = process_queries(command_line)
                     process_raw_dataset(**queries, OVERRIDE=o)
+                elif command == "eyes":
+                    eyes_data_shell()
                 elif command == "exit":
                     print("[%] Exiting...")
                     exit_var = True
