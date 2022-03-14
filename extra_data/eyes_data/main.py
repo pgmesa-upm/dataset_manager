@@ -8,13 +8,14 @@ from pathlib import Path
 from subprocess import run, PIPE
 import dateutil.parser as dateparser
 
-from dataset_manager import study_dir_path
+from config import config
 
 import pandas as pd
 from upm_oct_dataset_utils.dataset_classes import (
     RawDataset, StudyDate, DatasetAccessError
 )
 
+study_dir_path = Path(config('DATASETS_PATH')).resolve()
 raw_ds_path = study_dir_path/"raw_dataset"
 raw_ds = RawDataset(raw_ds_path)
 execution_path = Path(__file__).resolve().parent

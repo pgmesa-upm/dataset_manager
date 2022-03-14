@@ -1,7 +1,6 @@
 
 # Built-in modules
 import os
-import sys
 import json
 import time
 import shutil
@@ -19,22 +18,12 @@ import upm_oct_dataset_utils.oct_processing_lib as raw
 from upm_oct_dataset_utils.oct_processing_lib import Cube
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
 from upm_oct_dataset_utils.dataset_classes import (
-    RawDataset, CleanDataset, DatasetAccessError, StudyDate
+    RawDataset, CleanDataset, StudyDate
 )
 import upm_oct_dataset_utils.dataset_classes as ds
 
+from config import config
 from extra_data.eyes_data.main import dest_dir_name
-
-dir_ = Path(__file__).resolve().parent
-env_path = dir_/'.env.json'
-example_fname = '.env_example.json'
-
-def config(key) -> any:
-    if not os.path.exists(env_path):
-        shutil.copy(dir_/example_fname, env_path)
-    with open(env_path, 'r') as file:
-        env_dict = json.load(file)
-    return env_dict[key]
 
 study_dir_path = Path(config('DATASETS_PATH')).resolve()
 clean_dataset_path = study_dir_path/"clean_dataset"
