@@ -8,10 +8,14 @@ from pathlib import Path
 from subprocess import run, PIPE
 import dateutil.parser as dateparser
 
-import pandas as pd
-from upm_oct_dataset_utils.dataset_classes import RawDataset, StudyDate, DatasetAccessError
+from dataset_manager import study_dir_path
 
-raw_ds_path = Path("D:/study_datasets/raw_dataset/").resolve()
+import pandas as pd
+from upm_oct_dataset_utils.dataset_classes import (
+    RawDataset, StudyDate, DatasetAccessError
+)
+
+raw_ds_path = study_dir_path/"raw_dataset"
 raw_ds = RawDataset(raw_ds_path)
 execution_path = Path(__file__).resolve().parent
 excel_path = execution_path/"./eyes_data.xlsx"
@@ -23,14 +27,14 @@ date_format = "%d-%m-%Y"
 base_schema = {
     "OD": {
         "visual-acuity": None,
-        "diopters":{
+        "diopters": {
             "myopia-hypermetropia": None,
             "astigmatism": None
         }
     },
     "OS": {
         "visual-acuity": None,
-        "diopters":{
+        "diopters": {
             "myopia-hypermetropia": None,
             "astigmatism": None
         }
