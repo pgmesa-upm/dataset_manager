@@ -1,5 +1,6 @@
 
 __pycache__
 deprecated
-tests.py
+tests
 eyes_data.xlsx
+.env.json

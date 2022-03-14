@@ -25,10 +25,20 @@ import upm_oct_dataset_utils.dataset_classes as ds
 
 from extra_data.eyes_data.main import dest_dir_name
 
-study_hard_disk_path = "D:/"
-study_dir_name = "study_datasets"
-clean_dataset_path = study_hard_disk_path+f"{study_dir_name}/clean_dataset"
-raw_dataset_path = study_hard_disk_path+f"{study_dir_name}/raw_dataset"
+dir_ = Path(__file__).resolve().parent
+env_path = dir_/'.env.json'
+example_fname = '.env_example.json'
+
+def config(key) -> any:
+    if not os.path.exists(env_path):
+        shutil.copy(dir_/example_fname, env_path)
+    with open(env_path, 'r') as file:
+        env_dict = json.load(file)
+    return env_dict[key]
+
+study_dir_path = Path(config('DATASETS_PATH')).resolve()
+clean_dataset_path = study_dir_path/"clean_dataset"
+raw_dataset_path = study_dir_path/"raw_dataset"
 clean_dataset = CleanDataset(clean_dataset_path)
 raw_dataset = RawDataset(raw_dataset_path)
 
@@ -42,8 +52,8 @@ logger = logging.getLogger(__name__)
 
 def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
                         data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, OVERRIDE=False):
-    if not os.path.exists(study_hard_disk_path):
-        logger.error(f" The study hard disk is not connected to the computer '{study_hard_disk_path}'")
+    if not os.path.exists(study_dir_path):
+        logger.error(f" '{study_dir_path}' doesn't exist in this computer ")
         return
     logger.info(" ----------- Procesing raw_dataset into clean_dataset -----------")
     logger.info(f" -> Raw Dataset Path => '{raw_dataset_path}'")

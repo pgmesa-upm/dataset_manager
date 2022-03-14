@@ -6,7 +6,19 @@ Pablo García Mesa
 - pgmesa.sm@gmail.com
 - https://github.com/pgmesa-upm/dataset_manager
 
-### 0. Descripción
+## 0. Configuración
+1. Instalar las dependencias del programa
+```
+pip install -r requirements.txt
+```
+2. Modificar el archivo '.env.json' con la ruta de la carpeta que contiene los dataset (si no existe, copie el '.env_example.json' y renómbrelo a '.env.json'). Cuando se ejecuta el programa por primera vez, si '.env.json' no existe, este se crea con la información del ejemplo
+```
+{
+    "DATASETS_PATH": "D:/study_datasets/" 
+}
+```
+
+## 1. Descripción
 Esta herramienta se ha creado para facilitar el manejo actual y futuro del dataset del estudio de esclerosis múltiple,
 llevado a cabo por la UPM en colaboración con el oftalmológico del Gregorio Marañón 
 
@@ -58,7 +70,7 @@ Como se observa en la ayuda, los comandos del programa admiten parámetros extra
 
 >
 ```
-### 1. Ejemplos de Uso
+## 2. Ejemplos de Uso
 #### Mostrar la información del raw dataset para ver que estudios o adquisiciones quedan todavía por exportar de los pacientes o no existen, de los grupos de control y esclerosis
 ```
 raw -g=control,MS
@@ -227,7 +239,7 @@ Output:
 + 'MS' GROUP
 ...
 ```
-### 2. Limitaciones
+## 3. Limitaciones
 Los scripts en sí que usa el programa tienen gran cantidad de funcionalidades y posibilidades para buscar información, cambiar la forma del procesado etc, pero este programa de consola quelos utiliza es limitado por ahora y no permite acceder a muchas de las opciones que ofrecen los script. La búsqueda de información si se ha implementado casi al completo, pero la personalización del procesado todavía no. En un futuro convendría implementarlo con un fichero de configuración, pero de momento para el estudio no parece necesario, ya que una vez definida la forma de procesar, lo normal es dejarlo todo igual a no ser que se quiera reprocesar todo el dataset con otra configuración. Para hacer esto último requeriría cambiar los parámetro direcamente desde los scripts. También hay muchas otras funcionalidades que se podrían añadir y formas de reescribir el código de manera más eficiente, pero que por falta de tiempo no se han podido implementar.
 
 
