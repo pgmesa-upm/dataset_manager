@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, list[int]]=None, study:Union[int,StudyDate,list[int],list[StudyDate]]=None,
                         data_type:Union[str, list[str]]=None, zone:str=None, eye:str=None, OVERRIDE=False):
+    global study_dir_path
     if not os.path.exists(study_dir_path):
         logger.error(f" '{study_dir_path}' doesn't exist in this computer ")
         return
@@ -88,9 +89,9 @@ def process_raw_dataset(group:Union[str,list[str]]=None, patient_num:Union[int, 
                 logger.info(f"   -'{clean_std}'")
                 clean_dataset.create_study(grp, p_num, clean_std)
                 # Copiamos la extra info al directorio clean
-                study_dir_path = raw_dataset.get_dir_path(group=grp, patient_num=p_num, study=std)
+                std_dir_path = raw_dataset.get_dir_path(group=grp, patient_num=p_num, study=std)
                 clean_study_dir_path = clean_dataset.get_dir_path(group=grp, patient_num=p_num, study=clean_std)
-                extra_info_path = study_dir_path/dest_dir_name
+                extra_info_path = std_dir_path/dest_dir_name
                 if os.path.exists(extra_info_path):
                     l = os.listdir(extra_info_path)
                     for f in l:
