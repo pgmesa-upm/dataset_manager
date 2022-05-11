@@ -187,7 +187,6 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
             data_path, data_type, zone,
         ).resize_slices((350,350)).rotate_face(axis=1)
         
-        print(cube.value.shape)
         data = reconstruct_OCTA(
             cube, 
             kernel_size=(50,50),
