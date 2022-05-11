@@ -15,7 +15,7 @@ from PIL import Image
 import tiffile as tiff
 # pgmesa public PyPI package
 import upm_oct_dataset_utils.oct_processing_lib as raw
-from upm_oct_dataset_utils.oct_processing_lib import Cube
+from upm_oct_dataset_utils.oct_processing_lib import Cube, reconstruct_OCTA
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
 from upm_oct_dataset_utils.dataset_classes import (
     RawDataset, CleanDataset, StudyDate
@@ -179,14 +179,23 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
         else:
             resize_t = (512, 1024) if resize else None
         data = process_cube(
-            data_path, data_type, zone, 
+            data_path, data_type, zone,
             resize=resize_t
         ).as_nparray()
     elif data_type == ds.OCTA:
-        data = process_cube(
-            data_path, data_type, zone, 
-            resize=(int(width_scale_factor*1024), 1024) if resize else None
-        ).rotate_face(axe='x').resize_slices((350,350)).project().as_nparray()
+        cube = process_cube(
+            data_path, data_type, zone,
+        ).resize_slices((350,350)).rotate_face(axis=1)
+        
+        print(cube.value.shape)
+        data = reconstruct_OCTA(
+            cube, 
+            kernel_size=(50,50),
+            strides=(25,25),
+            bit_depth=16,
+            central_depth=0.3 if zone == ds.OPTIC_DISC else None,
+            show_progress=True
+        )
     else:
         raise Exception(f"DATA_ERROR: '{data_type}' is not a valid data type")
         
@@ -204,7 +213,6 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 width_pixels=256, # Num A-Scans/2
                 height_pixels=1024, # Samples of every A-Scan (always 1024 samples) (2 mm of depth in the tissue)
                 num_images=128, # Num B-Scans
-                vertical_flip=True,
                 resize=resize
             )
         elif zone == ds.OPTIC_DISC:
@@ -213,7 +221,6 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 width_pixels=100,
                 height_pixels=1024,
                 num_images=200,
-                vertical_flip=True,
                 resize=resize
             )
         else:
@@ -225,7 +232,6 @@ def process_cube(data_path:str, modality:str, zone:str, resize:tuple[int,int]=No
                 width_pixels=175,
                 height_pixels=1024,
                 num_images=350,
-                vertical_flip=True,
                 resize=resize
             )
         else:
