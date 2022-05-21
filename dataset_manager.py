@@ -15,7 +15,7 @@ from PIL import Image
 import tiffile as tiff
 # pgmesa public PyPI package
 import upm_oct_dataset_utils.oct_processing_lib as raw
-from upm_oct_dataset_utils.oct_processing_lib import Cube, reconstruct_OCTA
+from upm_oct_dataset_utils.oct_processing_lib import Cube, segment_vascular_layer
 from upm_oct_dataset_utils.xml_processing_lib import process_xmlscans
 from upm_oct_dataset_utils.dataset_classes import (
     RawDataset, CleanDataset, StudyDate
@@ -183,18 +183,17 @@ def process_image2D3D(data_path:str, data_type:str, zone:str, resize:bool=False,
             resize=resize_t
         ).as_nparray()
     elif data_type == ds.OCTA:
-        cube = process_cube(
-            data_path, data_type, zone,
-        ).resize_slices((350,350)).rotate_face(axis=1)
+        oct_path = str(data_path).replace("FlowCube_z", "cube_z")
+        oct_cube = process_cube(
+            oct_path, data_type, zone,
+        ).resize_slices((350,350))
         
-        data = reconstruct_OCTA(
-            cube, 
-            kernel_size=(50,50),
-            strides=(25,25),
-            bit_depth=16,
-            central_depth=0.3 if zone == ds.OPTIC_DISC else None,
-            show_progress=True
-        )
+        octa_cube = process_cube(
+            data_path, data_type, zone,
+        ).resize_slices((350,350))
+        seg_volume = segment_vascular_layer(octa_cube.as_nparray(), oct_cube.as_nparray())
+        data = Cube(seg_volume).rotate_face(axis=1).project().as_nparray()
+        data = data.astype(np.uint16) 
     else:
         raise Exception(f"DATA_ERROR: '{data_type}' is not a valid data type")
         

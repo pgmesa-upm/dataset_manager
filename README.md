@@ -10,6 +10,7 @@ Pablo García Mesa
 1. Instalar las dependencias del programa
 ```
 pip install -r requirements.txt
+pip install upm_oct_dataset_utils -U
 ```
 2. Modificar el archivo '.env.json' con la ruta de la carpeta que contiene los dataset (si no existe, copie el '.env_example.json' y renómbrelo a '.env.json'). Cuando se ejecuta el programa por primera vez, si '.env.json' no existe, este se crea con la información del ejemplo
 ```
